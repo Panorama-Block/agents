@@ -2,13 +2,14 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from agents.tools.custom_tool import GeminiImageDirectTool, GrokSearchTool
 
+import os
+
+print("LLM Provider:", os.getenv("LLM_PROVIDER"))
+print("LLM Model:", os.getenv("LLM_MODEL"))
+
 # If you want to run a snippet of code before or after the crew starts, 
 # you can use the @before_kickoff and @after_kickoff decorators
 # https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
-
-from crewai import CrewLLM
-
-llm = CrewLLM()
 
 @CrewBase
 class Agents():

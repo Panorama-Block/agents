@@ -6,6 +6,10 @@ from agents.tools.custom_tool import GeminiImageDirectTool, GrokSearchTool
 # you can use the @before_kickoff and @after_kickoff decorators
 # https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
 
+from crewai import CrewLLM
+
+llm = CrewLLM()
+
 @CrewBase
 class Agents():
 	"""Agents crew"""

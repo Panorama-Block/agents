@@ -9,6 +9,7 @@ import logging
 from typing import Any
 import time
 from datetime import datetime
+import litellm
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -67,11 +68,8 @@ class GrokSearchTool(BaseTool):
 
     def __init__(self):
         super().__init__()
-        self.client = openai.OpenAI(
-            api_key=os.getenv("GROK_API_KEY"),
-            base_url="https://api.x.ai/v1",
-            timeout=30.0
-        )
+        litellm.api_key = os.getenv("GROK_API_KEY")
+        litellm.api_base = "https://api.x.ai/v1"
 
     def _run(self, query: str) -> str:
         """
@@ -91,7 +89,7 @@ class GrokSearchTool(BaseTool):
         for attempt in range(max_retries):
             try:
                 logger.info(f"Executing Grok search attempt {attempt+1}/{max_retries}: {query}")
-                completion = self.client.chat.completions.create(
+                completion = litellm.completion(
                     model="grok-3-beta",
                     messages=[
                         {

@@ -1,8 +1,6 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from agents.tools.custom_tool import GeminiImageDirectTool, GrokSearchTool
-from langchain_google_genai import ChatGoogleGenerativeAI
-import os
 
 # If you want to run a snippet of code before or after the crew starts, 
 # you can use the @before_kickoff and @after_kickoff decorators
@@ -127,19 +125,11 @@ class Agents():
 		# To learn how to add knowledge sources to your crew, check out the documentation:
 		# https://docs.crewai.com/concepts/knowledge#what-is-knowledge
 
-		llm = ChatGoogleGenerativeAI(
-			model="gemini-1.5-pro", 
-			google_api_key=os.getenv("GEMINI_API_KEY"),
-			temperature=0.7,
-			convert_system_message_to_human=True
-		)
-
 		return Crew(
 			agents=[self.researcher(), self.reporting_analyst(), self.twitter_redactor()],
 			tasks=[self.research_task(), self.reporting_task(), self.twitter_redaction_task()],
 			process=Process.sequential,
 			verbose=True,
-			llm=llm,
 			# process=Process.hierarchical, # In case you wanna use that instead https://docs.crewai.com/how-to/Hierarchical/
 		)
   
@@ -149,32 +139,17 @@ class Agents():
 		# To learn how to add knowledge sources to your crew, check out the documentation:
 		# https://docs.crewai.com/concepts/knowledge#what-is-knowledge
 
-		llm = ChatGoogleGenerativeAI(
-			model="gemini-1.5-pro", 
-			google_api_key=os.getenv("GEMINI_API_KEY"),
-			temperature=0.7,
-			convert_system_message_to_human=True
-		)
-
 		return Crew(
 			agents=[self.image_generator()],
 			tasks=[self.image_generation_task()],
 			process=Process.sequential,
 			verbose=True,
-			llm=llm,
 			# process=Process.hierarchical, # In case you wanna use that instead https://docs.crewai.com/how-to/Hierarchical/
 		)
 
 	@crew
 	def avax_crew(self) -> Crew:
 		"""Creates the Avax Research and Analysis crew"""
-		llm = ChatGoogleGenerativeAI(
-			model="gemini-1.5-pro", 
-			google_api_key=os.getenv("GEMINI_API_KEY"),
-			temperature=0.7,
-			convert_system_message_to_human=True
-		)
-		
 		return Crew(
 			agents=[
 				self.avax_researcher(), 
@@ -186,20 +161,12 @@ class Agents():
 				self.avax_reporting_task(), 
 				self.twitter_redaction_task(),
 			],
-			process=Process.sequential,
-			llm=llm
+			process=Process.sequential
 		)
 
 	@crew
 	def hedera_crew(self) -> Crew:
 		"""Creates the Hedera Research and Analysis crew"""
-		llm = ChatGoogleGenerativeAI(
-			model="gemini-1.5-pro", 
-			google_api_key=os.getenv("GEMINI_API_KEY"),
-			temperature=0.7,
-			convert_system_message_to_human=True
-		)
-		
 		return Crew(
 			agents=[
 				self.hedera_researcher(), 
@@ -211,6 +178,5 @@ class Agents():
 				self.hedera_reporting_task(), 
 				self.twitter_redaction_task(),
 			],
-			process=Process.sequential,
-			llm=llm
+			process=Process.sequential
 		)

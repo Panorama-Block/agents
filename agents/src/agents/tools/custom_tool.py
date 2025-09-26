@@ -7,9 +7,10 @@ from io import BytesIO
 from dotenv import load_dotenv
 import openai
 import logging
-from typing import Any
+from typing import Any, Optional
 import time
 from datetime import datetime
+import requests
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -55,20 +56,22 @@ class GrokSearchTool(BaseTool):
     description: str = "Search for content using Grok API"
     client: Any = None  
     failure_count: int = 0
-    last_failure_time: Any = None
-
+    last_failure_time: Optional[datetime] = None
+    api_key: Optional[str] = None
+    base_url: str = "https://api.x.ai/v1"
+    headers: Optional[dict] = None
     search_type: str = ""
 
-    if agent == "zico":
-        search_type = "Zico"
-    elif agent == "avax":
-        search_type = "Avalanche (AVAX)"
-    elif agent == "hedera":
-        search_type = "Hedera (HBAR)"
-
     def __init__(self):
+        super().__init__()
+        if agent == "zico":
+            self.search_type = "Zico"
+        elif agent == "avax":
+            self.search_type = "Avalanche (AVAX)"
+        elif agent == "hedera":
+            self.search_type = "Hedera (HBAR)"
+        
         self.api_key = os.getenv("GROK_API_KEY")
-        self.base_url = "https://api.x.ai/v1"
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -88,7 +91,7 @@ class GrokSearchTool(BaseTool):
             "messages":[
                 {
                     "role": "system", 
-                    "content": """You are a research assistant focused on {self.search_type}. 
+                    "content": f"""You are a research assistant focused on {self.search_type}. 
                     Search and analyze only the specific information requested.
                     Provide factual, data-driven insights based on real-time information.
                     Keep responses focused and relevant to the query.
@@ -119,7 +122,7 @@ class GrokSearchTool(BaseTool):
                 )
                 completion = response.json()
                 
-                content = completion.choices[0].message.content
+                content = completion["choices"][0]["message"]["content"]
                 if not content or content.strip() == "":
                     self.failure_count += 1
                     if attempt < max_retries - 1:

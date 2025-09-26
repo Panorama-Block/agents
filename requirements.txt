@@ -24,7 +24,8 @@ chromadb==0.5.23
 click==8.1.8
 cohere==5.13.11
 coloredlogs==15.0.1
-crewai==0.16.3
+crewai==0.100.1
+crewai-tools==0.33.0
 cryptography==44.0.0
 dataclasses-json==0.6.7
 decorator==5.1.1
@@ -52,7 +53,6 @@ google-cloud-core==2.4.1
 google-cloud-resource-manager==1.14.0
 google-cloud-storage==2.19.0
 google-crc32c==1.6.0
-google-generativeai==0.3.2
 google-resumable-media==2.7.2
 googleapis-common-protos==1.66.0
 gptcache==0.1.44
@@ -90,8 +90,12 @@ jsonschema-specifications==2024.10.1
 kubernetes==32.0.0
 lancedb==0.18.0
 langchain==0.3.17
+langchain-cohere==0.3.5
+langchain-community==0.3.16
 langchain-core==0.3.33
+langchain-experimental==0.3.4
 langchain-openai==0.2.14
+langchain-text-splitters==0.3.5
 langsmith==0.1.147
 litellm==1.59.8
 Mako==1.3.8
@@ -150,6 +154,7 @@ pydantic-settings==2.7.1
 pydantic_core==2.27.2
 Pygments==2.19.1
 PyJWT==2.10.1
+pylance==0.22.0
 pypdf==5.2.0
 pypdfium2==4.30.1
 PyPika==0.48.9

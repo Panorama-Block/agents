@@ -67,12 +67,12 @@ class GrokSearchTool(BaseTool):
         search_type = "Hedera (HBAR)"
 
     def __init__(self):
-        super().__init__()
-        self.client = openai.OpenAI(
-            api_key=os.getenv("GROK_API_KEY"),
-            base_url="https://api.x.ai/v1",
-            timeout=30.0
-        )
+        self.api_key = os.getenv("GROK_API_KEY")
+        self.base_url = "https://api.x.ai/v1"
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
 
     def _run(self, query: str) -> str:
         """
@@ -82,6 +82,25 @@ class GrokSearchTool(BaseTool):
         Returns:
             str: The search results
         """
+
+        payloads = {
+            "model": "grok-3-beta",
+            "messages":[
+                {
+                    "role": "system", 
+                    "content": """You are a research assistant focused on {self.search_type}. 
+                    Search and analyze only the specific information requested.
+                    Provide factual, data-driven insights based on real-time information.
+                    Keep responses focused and relevant to the query.
+                    If you cannot find relevant information, explain why."""
+                },
+                {
+                    "role": "user", 
+                    "content": f"Search and provide specific information about: {query}\nFocus only on recent and verified information about this topic in the context of {self.search_type}."
+                }
+            ]
+        }
+
         max_retries = 3
         
         if self.failure_count > 5:
@@ -92,25 +111,13 @@ class GrokSearchTool(BaseTool):
         for attempt in range(max_retries):
             try:
                 logger.info(f"Executing Grok search attempt {attempt+1}/{max_retries}: {query}")
-                completion = self.client.chat.completions.create(
-                    model="grok-3-beta",
-                    messages=[
-                        {
-                            "role": "system", 
-                            "content": """You are a research assistant focused on {self.search_type}. 
-                            Search and analyze only the specific information requested.
-                            Provide factual, data-driven insights based on real-time information.
-                            Keep responses focused and relevant to the query.
-                            If you cannot find relevant information, explain why."""
-                        },
-                        {
-                            "role": "user", 
-                            "content": f"Search and provide specific information about: {query}\nFocus only on recent and verified information about this topic in the context of {self.search_type}."
-                        }
-                    ],
-                    max_tokens=500,
-                    temperature=0.7
+                response = requests.post(
+                    f"{self.base_url}/chat/completions",
+                    headers=self.headers,
+                    json=payloads,
+                    timeout=30
                 )
+                completion = response.json()
                 
                 content = completion.choices[0].message.content
                 if not content or content.strip() == "":

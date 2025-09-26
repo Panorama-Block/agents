@@ -5,7 +5,6 @@ import os
 from PIL import Image
 from io import BytesIO
 from dotenv import load_dotenv
-import openai
 import logging
 from typing import Any
 import time

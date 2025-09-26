@@ -1,27 +1,29 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from agents.tools.custom_tool import GeminiImageDirectTool, GrokSearchTool
-
-# If you want to run a snippet of code before or after the crew starts, 
-# you can use the @before_kickoff and @after_kickoff decorators
-# https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
+from langchain_google_genai import ChatGoogleGenerativeAI
+import os
 
 @CrewBase
 class Agents():
 	"""Agents crew"""
 
-	# Learn more about YAML configuration files here:
-	# Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
-	# Tasks: https://docs.crewai.com/concepts/tasks#yaml-configuration-recommended
 	agents_config = 'config/agents.yaml'
 	tasks_config = 'config/tasks.yaml'
 
-	# If you would like to add tools to your agents, you can learn more about it here:
-	# https://docs.crewai.com/concepts/agents#agent-tools
+	def _get_llm(self):
+		return ChatGoogleGenerativeAI(
+			model="gemini-pro",
+			google_api_key=os.getenv("GEMINI_API_KEY"),
+			temperature=0.7,
+			convert_system_message_to_human=True
+		)
+
 	@agent
 	def researcher(self) -> Agent:
-			return Agent(
+		return Agent(
 			config=self.agents_config['researcher'],
+			llm=self._get_llm(),
 			verbose=True
 		)
 
@@ -29,6 +31,7 @@ class Agents():
 	def avax_researcher(self) -> Agent:
 		return Agent(
 			config=self.agents_config['avax_researcher'],
+			llm=self._get_llm(),
 			tools=[GrokSearchTool()],
 			verbose=True
 		)
@@ -37,6 +40,7 @@ class Agents():
 	def hedera_researcher(self) -> Agent:
 		return Agent(
 			config=self.agents_config['hedera_researcher'],
+			llm=self._get_llm(),
 			tools=[GrokSearchTool()],
 			verbose=True
 		)
@@ -45,13 +49,15 @@ class Agents():
 	def reporting_analyst(self) -> Agent:
 		return Agent(
 			config=self.agents_config['reporting_analyst'],
+			llm=self._get_llm(),
 			verbose=True
 		)
 
 	@agent
 	def twitter_redactor(self) -> Agent:
-			return Agent(
+		return Agent(
 			config=self.agents_config['twitter_redactor'],
+			llm=self._get_llm(),
 			verbose=True
 		)
 
@@ -59,6 +65,7 @@ class Agents():
 	def image_generator(self) -> Agent:
 		return Agent(
 			config=self.agents_config['image_generator'],
+			llm=self._get_llm(),
 			tools=[GeminiImageDirectTool()],
 			verbose=True
 		)

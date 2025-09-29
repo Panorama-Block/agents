@@ -58,30 +58,28 @@ class GrokSearchTool(BaseTool):
     description: str = "Search for content using Grok API"
     client: Any = None  
     failure_count: int = 0
-    last_failure_time: Optional[datetime] = None
-    api_key: Optional[str] = None
+    last_failure_time: Any = None
+
     search_type: str = ""
-    previous_response_id: Optional[str] = None
+
+    if agent == "zico":
+        search_type = "Zico"
+    elif agent == "avax":
+        search_type = "Avalanche (AVAX)"
+    elif agent == "hedera":
+        search_type = "Hedera (HBAR)"
 
     def __init__(self):
         super().__init__()
-        if agent == "zico":
-            self.search_type = "Zico"
-        elif agent == "avax":
-            self.search_type = "Avalanche (AVAX)"
-        elif agent == "hedera":
-            self.search_type = "Hedera (HBAR)"
-        
-        self.api_key = os.getenv("GROK_API_KEY")
-        self.client = OpenAI(
-            api_key=self.api_key,
+        self.client = openai.OpenAI(
+            api_key=os.getenv("GROK_API_KEY"),
             base_url="https://api.x.ai/v1",
-            timeout=httpx.Timeout(60.0)  # 60 seconds timeout
+            timeout=30.0
         )
 
     def _run(self, query: str) -> str:
         """
-        Execute a search using Grok API via OpenAI client
+        Execute a search using Grok API
         Args:
             query (str): The search query
         Returns:
@@ -97,47 +95,27 @@ class GrokSearchTool(BaseTool):
         for attempt in range(max_retries):
             try:
                 logger.info(f"Executing Grok search attempt {attempt+1}/{max_retries}: {query}")
+                completion = self.client.chat.completions.create(
+                    model="grok-3-beta",
+                    messages=[
+                        {
+                            "role": "system", 
+                            "content": """You are a research assistant focused on {self.search_type}. 
+                            Search and analyze only the specific information requested.
+                            Provide factual, data-driven insights based on real-time information.
+                            Keep responses focused and relevant to the query.
+                            If you cannot find relevant information, explain why."""
+                        },
+                        {
+                            "role": "user", 
+                            "content": f"Search and provide specific information about: {query}\nFocus only on recent and verified information about this topic in the context of {self.search_type}."
+                        }
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
                 
-                system_message = {
-                    "role": "system", 
-                    "content": f"""You are a research assistant focused on {self.search_type}. 
-                    Search and analyze only the specific information requested.
-                    Provide factual, data-driven insights based on real-time information.
-                    Keep responses focused and relevant to the query."""
-                }
-                
-                user_message = {
-                    "role": "user", 
-                    "content": f"Search and provide specific information about: {query}\nFocus only on recent and verified information about this topic in the context of {self.search_type}."
-                }
-                
-                input_messages = [system_message, user_message]
-                
-                if self.previous_response_id:
-                    # Continue conversation if we have a previous response ID
-                    response = self.client.chat.completions.create(
-                        model="grok-4",
-                        messages=[
-                            {"role": "system", "content": system_message["content"]},
-                            {"role": "assistant", "content": "I'll help you with that."},
-                            {"role": "user", "content": user_message["content"]}
-                        ]
-                    )
-                else:
-                    # Start new conversation
-                    response = self.client.chat.completions.create(
-                        model="grok-4",
-                        messages=[
-                            {"role": "system", "content": system_message["content"]},
-                            {"role": "user", "content": user_message["content"]}
-                        ]
-                    )
-                
-                # Store the response ID for potential future continuation
-                self.previous_response_id = response.id
-                
-                content = response.choices[0].message.content
-                
+                content = completion.choices[0].message.content
                 if not content or content.strip() == "":
                     self.failure_count += 1
                     if attempt < max_retries - 1:
@@ -160,5 +138,5 @@ class GrokSearchTool(BaseTool):
                 return f"Error executing Grok search after {max_retries} attempts: {str(e)}"
 
     async def _arun(self, query: str) -> str:
-        """Async implementation of the tool"""
-        return self._run(query)
+            """Async implementation of the tool"""
+            return self._run(query)

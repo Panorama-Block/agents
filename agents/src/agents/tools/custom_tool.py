@@ -6,6 +6,8 @@ from PIL import Image
 from io import BytesIO
 from dotenv import load_dotenv
 import openai
+from openai import OpenAI
+import httpx
 import logging
 from typing import Any, Optional
 import time
@@ -58,9 +60,8 @@ class GrokSearchTool(BaseTool):
     failure_count: int = 0
     last_failure_time: Optional[datetime] = None
     api_key: Optional[str] = None
-    base_url: str = "https://api.x.ai/v1"
-    headers: Optional[dict] = None
     search_type: str = ""
+    previous_response_id: Optional[str] = None
 
     def __init__(self):
         super().__init__()
@@ -72,38 +73,20 @@ class GrokSearchTool(BaseTool):
             self.search_type = "Hedera (HBAR)"
         
         self.api_key = os.getenv("GROK_API_KEY")
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+        self.client = OpenAI(
+            api_key=self.api_key,
+            base_url="https://api.x.ai/v1",
+            timeout=httpx.Timeout(60.0)  # 60 seconds timeout
+        )
 
     def _run(self, query: str) -> str:
         """
-        Execute a search using Grok API
+        Execute a search using Grok API via OpenAI client
         Args:
             query (str): The search query
         Returns:
             str: The search results
         """
-
-        payloads = {
-            "model": "grok-3-beta",
-            "messages":[
-                {
-                    "role": "system", 
-                    "content": f"""You are a research assistant focused on {self.search_type}. 
-                    Search and analyze only the specific information requested.
-                    Provide factual, data-driven insights based on real-time information.
-                    Keep responses focused and relevant to the query.
-                    If you cannot find relevant information, explain why."""
-                },
-                {
-                    "role": "user", 
-                    "content": f"Search and provide specific information about: {query}\nFocus only on recent and verified information about this topic in the context of {self.search_type}."
-                }
-            ]
-        }
-
         max_retries = 3
         
         if self.failure_count > 5:
@@ -114,15 +97,41 @@ class GrokSearchTool(BaseTool):
         for attempt in range(max_retries):
             try:
                 logger.info(f"Executing Grok search attempt {attempt+1}/{max_retries}: {query}")
-                response = requests.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self.headers,
-                    json=payloads,
-                    timeout=30
-                )
-                completion = response.json()
                 
-                content = completion["choices"][0]["message"]["content"]
+                system_message = {
+                    "role": "system", 
+                    "content": f"""You are a research assistant focused on {self.search_type}. 
+                    Search and analyze only the specific information requested.
+                    Provide factual, data-driven insights based on real-time information.
+                    Keep responses focused and relevant to the query."""
+                }
+                
+                user_message = {
+                    "role": "user", 
+                    "content": f"Search and provide specific information about: {query}\nFocus only on recent and verified information about this topic in the context of {self.search_type}."
+                }
+                
+                input_messages = [system_message, user_message]
+                
+                if self.previous_response_id:
+                    # Continue conversation if we have a previous response ID
+                    response = self.client.responses.create(
+                        model="grok-4",
+                        previous_response_id=self.previous_response_id,
+                        input=[user_message]
+                    )
+                else:
+                    # Start new conversation
+                    response = self.client.responses.create(
+                        model="grok-4",
+                        input=input_messages
+                    )
+                
+                # Store the response ID for potential future continuation
+                self.previous_response_id = response.id
+                
+                content = response.choices[0].message.content
+                
                 if not content or content.strip() == "":
                     self.failure_count += 1
                     if attempt < max_retries - 1:

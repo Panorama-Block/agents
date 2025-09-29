@@ -113,22 +113,24 @@ class GrokSearchTool(BaseTool):
                 
                 input_messages = [system_message, user_message]
                 
-                {{ ... }}
                 if self.previous_response_id:
                     # Continue conversation if we have a previous response ID
                     response = self.client.chat.completions.create(
                         model="grok-4",
                         messages=[
-                            system_message,
+                            {"role": "system", "content": system_message["content"]},
                             {"role": "assistant", "content": "I'll help you with that."},
-                            user_message
+                            {"role": "user", "content": user_message["content"]}
                         ]
                     )
                 else:
                     # Start new conversation
                     response = self.client.chat.completions.create(
                         model="grok-4",
-                        messages=[system_message, user_message]
+                        messages=[
+                            {"role": "system", "content": system_message["content"]},
+                            {"role": "user", "content": user_message["content"]}
+                        ]
                     )
                 
                 # Store the response ID for potential future continuation
